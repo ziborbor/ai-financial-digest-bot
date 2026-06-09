@@ -1,53 +1,42 @@
 import json
 from news import fetch_news
-from llm import summarize_news
+from llm import analyze_news
 from emailer import send_email
+from user_profile import USER_PROFILE
 
 
 def build_email(news_items):
-    """
-    功能：把所有新聞組裝成 HTML email
-
-    流程：
-    1. 初始化 HTML header
-    2. 每則新聞 → 丟給 AI
-    3. 解析 AI JSON
-    4. 組成 HTML block
-    5. return 完整 email
-    """
-
-    html = "<h1>📊 Daily Financial Digest</h1>"
+    html = "<h1>📊 Personal Financial Digest</h1>"
 
     for n in news_items:
 
-        # 用 AI 分析單一新聞
-        ai_output = summarize_news(n)
+        ai_output = analyze_news(n, USER_PROFILE)
 
-        # 嘗試把 AI output 轉成 JSON
         try:
             data = json.loads(ai_output)
         except:
-            # 如果 AI 沒照規則輸出，就 fallback
-            data = {
-                "summary": ai_output,
-                "market": "N/A",
-                "category": "Other",
-                "impact_score": 3
-            }
+            continue
 
-        # 加入 HTML email
+        # filter：只顯示對你重要的
+        if data.get("relevance_score", 0) < 3:
+            continue
+
         html += f"""
         <hr>
 
         <h3>{n['title']}</h3>
 
-        <p><b>Summary:</b> {data['summary']}</p>
+        <p>📌 Summary: {data['summary']}</p>
 
-        <p><b>Market Impact:</b> {data['market']}</p>
+        <p><b>Portfolio Impact:</b> {data['portfolio_impact']}</p>
 
-        <p><b>Category:</b> {data['category']}</p>
+        <p><b>Action:</b> {data['action']}</p>
 
-        <p><b>Impact Score:</b> {data['impact_score']}/5</p>
+        <p><b>Reason:</b> {data['action_reason']}</p>
+
+        <p><b>Risk:</b> {data['risk_level']}</p>
+
+        <p><b>Relevance:</b> {data['relevance_score']}/5</p>
 
         <a href="{n['link']}">Read original</a>
         """
@@ -56,22 +45,13 @@ def build_email(news_items):
 
 
 def main():
-    """
-    主流程（整個 bot 的 entry point）
+    RetrievedNews = fetch_news()
 
-    步驟：
-    1. 抓新聞
-    2. AI 分析
-    3. 組 email
-    4. 發送 email
-    """
-    print("NEWS FILE:")
-    #print("DIR:", dir(news))
-    RetrievedNews = fetch_news()              # step 1
-    email_content = build_email(RetrievedNews) # step 2
-    send_email(email_content)        # step 3
+    email_content = build_email(RetrievedNews)
 
-    print("✅ Daily Digest sent!")
+    send_email(email_content)
+
+    print("✅ Personal AI Digest sent!")
 
 
 if __name__ == "__main__":

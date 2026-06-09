@@ -8,46 +8,39 @@ load_dotenv()  # 載入 .env 裡的 API key
 # 初始化 OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-def summarize_news(article):
+def analyze_news(article, user_profile):
     """
-    功能：用 AI 讀一則新聞，輸出結構化分析
-
-    input:
-        article = {
-            title,
-            summary,
-            link
-        }
-
-    AI 做的事：
-    1. 總結新聞
-    2. 判斷市場影響
-    3. 分類（AI / Macro / Stocks / Crypto）
-    4. 給 impact score (1-5)
-
-    return:
-        string (JSON format)
+    把新聞變成「對你個人有意義的金融分析」
     """
 
     prompt = f"""
-You are a financial analyst.
+You are a PERSONAL FINANCIAL AI ADVISOR.
 
-Return STRICT JSON ONLY:
+Your job:
+- Analyze news impact on the user
+- Focus ONLY on relevance to user's portfolio and situation
+- Be conservative (no hype)
 
-{{
-  "summary": "...",
-  "market": "...",
-  "category": "AI | Macro | Stocks | Crypto | Other",
-  "impact_score": 1-5
-}}
+USER PROFILE:
+{user_profile}
 
-News:
+NEWS:
 Title: {article['title']}
 Content: {article['summary']}
+
+Return STRICT JSON:
+
+{{
+  "relevance_score": 1-5,
+  "category": "AI / Macro / Stocks / Crypto / Property / Other",
+  "summary": "short summary",
+  "portfolio_impact": "how it affects user's holdings or net worth",
+  "action": "Buy / Sell / Hold / Monitor / Ignore",
+  "action_reason": "why this action",
+  "risk_level": "low / medium / high"
+}}
 """
 
-    # 呼叫 GPT 做分析
     response = client.responses.create(
         model="gpt-4.1-mini",
         input=prompt
